@@ -1,0 +1,48 @@
+{
+  "features": [
+    "age",
+    "hypertension",
+    "heart_disease",
+    "bmi",
+    "hba1c_level",
+    "blood_glucose_level",
+    "gender_Male",
+    "gender_Other",
+    "smoking_history_current",
+    "smoking_history_ever",
+    "smoking_history_former",
+    "smoking_history_never",
+    "smoking_history_not current"
+  ],
+  "lr_coefficients": {
+    "age": 0.001905,
+    "hypertension": -0.015439,
+    "heart_disease": 0.234028,
+    "bmi": -0.000485,
+    "hba1c_level": 1.903278,
+    "blood_glucose_level": 0.040341,
+    "gender_Male": -0.031356,
+    "gender_Other": 0.23893,
+    "smoking_history_current": -0.225159,
+    "smoking_history_ever": -0.027205,
+    "smoking_history_former": -0.115191,
+    "smoking_history_never": -0.137877,
+    "smoking_history_not current": -0.13141
+  },
+  "lr_intercept": -17.442695,
+  "feature_importances": {
+    "age": 0.1001,
+    "hypertension": 0.0151,
+    "heart_disease": 0.0119,
+    "bmi": 0.1181,
+    "hba1c_level": 0.3987,
+    "blood_glucose_level": 0.3236,
+    "gender_Male": 0.0094,
+    "gender_Other": 0.0,
+    "smoking_history_current": 0.0035,
+    "smoking_history_ever": 0.0033,
+    "smoking_history_former": 0.0056,
+    "smoking_history_never": 0.0068,
+    "smoking_history_not current": 0.0039
+  }
+}

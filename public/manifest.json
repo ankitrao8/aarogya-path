@@ -1,0 +1,17 @@
+{
+  "name": "Aarogya Path - आरोग्य पथ",
+  "short_name": "Aarogya Path",
+  "description": "Multilingual rural telehealth triage and referral platform for India (सही इलाज, सही समय, सही जगह)",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

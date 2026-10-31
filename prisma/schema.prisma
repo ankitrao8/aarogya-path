@@ -1,0 +1,162 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String          @id @default(cuid())
+  email            String?         @unique
+  phone            String?         @unique
+  passwordHash     String
+  name             String
+  role             String          @default("PATIENT") // PATIENT, ASHA, DOCTOR, ADMIN
+  language         String          @default("hi")
+  district         String?
+  village          String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  
+  patientProfile   PatientProfile?
+  ashaReferrals    Referral[]      @relation("AshaReferrals")
+  doctorConsults   ConsultRequest[] @relation("DoctorConsults")
+  doctorReferrals  Referral[]      @relation("DoctorReferrals")
+  auditLogs        AuditLog[]
+}
+
+model PatientProfile {
+  id               String          @id @default(cuid())
+  userId           String          @unique
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age              Int
+  sex              String          // MALE, FEMALE, OTHER
+  village          String
+  district         String
+  isPregnant       Boolean         @default(false)
+  pregnancyWeeks   Int?
+  knownConditions  String          @default("[]") // JSON string: ["DIABETES", "HYPERTENSION", "ASTHMA", "TB", "HEART_DISEASE"]
+  emergencyPhone   String?
+  consentGiven     Boolean         @default(true)
+  consentTimestamp DateTime        @default(now())
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  assessments      Assessment[]
+  referrals        Referral[]
+  consultRequests  ConsultRequest[]
+}
+
+model Assessment {
+  id                  String          @id @default(cuid())
+  patientProfileId    String
+  patientProfile      PatientProfile  @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  conductedByRole     String          @default("PATIENT") // PATIENT, ASHA
+  conductedById       String?         // ASHA user ID if triaged on behalf
+  
+  symptoms            String          // JSON array of symptom IDs: ["fever", "chest_pain"]
+  answers             String          // JSON object of follow-up questions: {"fever_duration": "3_plus_days"}
+  level               String          // GREEN, YELLOW, ORANGE, RED
+  reasons             String          // JSON array of triggered rules/explanations
+  dangerSigns         String          // JSON array of critical warning signs
+  homeCareAdvice      String          // Text/JSON of actionable home care
+  recommendedFacility String          // SUB_CENTRE, PHC, CHC, DISTRICT_HOSPITAL, PRIVATE_CLINIC, TELECONSULT_PARTNER
+  ruleVersion         String          @default("v1.0.0")
+  inputMethod         String          @default("TAP") // TAP, VOICE, HYBRID
+  
+  createdAt           DateTime        @default(now())
+  referrals           Referral[]
+  followUps           FollowUp[]
+}
+
+model Facility {
+  id               String          @id @default(cuid())
+  name             String
+  nameHi           String?
+  type             String          // SUB_CENTRE, PHC, CHC, DISTRICT_HOSPITAL, PRIVATE_CLINIC, TELECONSULT_PARTNER
+  district         String
+  block            String?
+  address          String
+  phone            String
+  lat              Float
+  lng              Float
+  services         String          @default("[]") // JSON array: ["EMERGENCY", "MATERNITY", "IPD", "OPD", "TELEMEDICINE"]
+  openingHours     String          @default("24x7")
+  isSampleData     Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  referrals        Referral[]
+}
+
+model Referral {
+  id                String          @id @default(cuid())
+  assessmentId      String
+  assessment        Assessment      @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  patientProfileId  String
+  patientProfile    PatientProfile  @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  facilityId        String?
+  facility          Facility?       @relation(fields: [facilityId], references: [id])
+  assignedAshaId    String?
+  assignedAsha      User?           @relation("AshaReferrals", fields: [assignedAshaId], references: [id])
+  assignedDoctorId  String?
+  assignedDoctor    User?           @relation("DoctorReferrals", fields: [assignedDoctorId], references: [id])
+  
+  level             String          // ORANGE, RED, etc.
+  status            String          @default("NEW") // NEW, ACKNOWLEDGED, SEEN, CLOSED
+  clinicalNotes     String?
+  transportArranged Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model ConsultRequest {
+  id               String          @id @default(cuid())
+  patientProfileId String
+  patientProfile   PatientProfile  @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  doctorId         String?
+  doctor           User?           @relation("DoctorConsults", fields: [doctorId], references: [id])
+  status           String          @default("REQUESTED") // REQUESTED, SCHEDULED, COMPLETED, CANCELLED
+  preferredSlot    String          // "TODAY_MORNING", "TODAY_EVENING", "TOMORROW"
+  chiefComplaint   String
+  doctorNotes      String?
+  rxAdvice         String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model FollowUp {
+  id               String          @id @default(cuid())
+  assessmentId     String
+  assessment       Assessment      @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  scheduledFor     DateTime
+  completedAt      DateTime?
+  statusResponse   String?         // BETTER, SAME, WORSE
+  escalated        Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+}
+
+model Notification {
+  id               String          @id @default(cuid())
+  recipientRole    String          // PATIENT, ASHA, DOCTOR, ADMIN
+  recipientUserId  String?
+  title            String
+  message          String
+  link             String?
+  isRead           Boolean         @default(false)
+  channel          String          @default("IN_APP") // IN_APP, SMS_MOCK, WHATSAPP_MOCK
+  createdAt        DateTime        @default(now())
+}
+
+model AuditLog {
+  id               String          @id @default(cuid())
+  userId           String?
+  user             User?           @relation(fields: [userId], references: [id])
+  action           String          // VIEW_RECORD, UPDATE_STATUS, DELETE_DATA, RUN_TRIAGE
+  entity           String          // PatientProfile, Referral, Assessment
+  entityId         String
+  ipAddress        String?
+  timestamp        DateTime        @default(now())
+}
