@@ -1,5 +1,6 @@
 'use client';
 
+import { extractSymptomsLocally } from '@/lib/triage/symptoms';
 import { useTranslation } from '@/lib/i18n';
 import { TriageResult } from '@/lib/triage/types';
 import {
@@ -207,7 +208,23 @@ export function SymptomWizard() {
   };
 
   const handleProceedToDetails = () => {
-    if (selectedSymptoms.length === 0 && !textInput) {
+    let currentSymptoms = [...selectedSymptoms];
+    if (textInput.trim()) {
+      const extracted = extractSymptomsLocally(textInput);
+      if (extracted.length > 0) {
+        currentSymptoms = Array.from(new Set([...currentSymptoms, ...extracted]));
+      } else {
+        const tokens = textInput
+          .toLowerCase()
+          .split(/[\s,]+/)
+          .map((s) => s.trim().replace(/[-\s]+/g, '_'))
+          .filter(Boolean);
+        currentSymptoms = Array.from(new Set([...currentSymptoms, ...tokens]));
+      }
+      setSelectedSymptoms(currentSymptoms);
+    }
+
+    if (currentSymptoms.length === 0) {
       alert('Please select at least one symptom or describe what you feel.');
       return;
     }
@@ -393,7 +410,7 @@ export function SymptomWizard() {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D9F5EA] border border-[#0D9B75]/30 text-xs font-bold text-[#0D9B75]">
             <HeartPulse className="w-3.5 h-3.5 text-[#0D9B75]" />
-            <span>Cleveland Heart ML एवं Diabetes Random Forest मॉडल सक्रिय (Trained AI Active)</span>
+            <span>41 Diseases Symptom ML • Cleveland Heart • Diabetes Random Forest सक्रिय (All Models Active)</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-[#16352D] flex items-center gap-2.5">
             <Sparkles className="w-7 h-7 text-[#0D9B75]" />

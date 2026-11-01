@@ -1,3 +1,4 @@
+import { predictDiseaseFromSymptoms } from '../ml/diseasePredictor';
 import { predictDiabetesRisk, predictHeartDiseaseRisk } from '../ml/predictor';
 import {
   GREEN_RULES,
@@ -156,6 +157,30 @@ export function evaluateTriage(input: TriageInput): TriageResult {
     Boolean(input.patient.knownConditions?.includes('DIABETES'));
 
   const mlPredictions: MLRiskAssessments = {};
+
+  // Run Trained Disease Symptom Prediction ML Model
+  if (input.symptoms && input.symptoms.length > 0) {
+    const diseasePred = predictDiseaseFromSymptoms(input.symptoms);
+    if (diseasePred) {
+      mlPredictions.diseasePrediction = diseasePred;
+
+      // If ML predicts an acute critical disease with high confidence, step up triage severity
+      if (
+        diseasePred.topDisease.urgency === 'RED' &&
+        diseasePred.topDisease.percentage >= 60 &&
+        finalLevel !== 'RED'
+      ) {
+        finalLevel = stepUpSeverity(finalLevel);
+        if (finalLevel !== 'RED') finalLevel = 'ORANGE';
+        reasons.push(
+          `ML_DISEASE_ALERT: सांख्यिकीय एमएल मॉडल द्वारा संभावित गंभीर स्थिति '${diseasePred.topDisease.diseaseHi}' (${diseasePred.topDisease.percentage}% संभावना) आंकी गई`
+        );
+        dangerSigns.add(
+          `संभावित गंभीर स्थिति: ${diseasePred.topDisease.diseaseHi} (ML High Acuity Alert)`
+        );
+      }
+    }
+  }
 
   if (isHeartRelated) {
     const heartPred = predictHeartDiseaseRisk({

@@ -19,6 +19,8 @@ import {
   Pill,
   RotateCcw,
   ShieldCheck,
+  Sparkles,
+  Stethoscope,
   Video,
   Volume2,
 } from 'lucide-react';
@@ -261,21 +263,177 @@ export function TriageResultCard({
         </div>
       </div>
 
-      {/* TRAINED ML PREDICTION ASSESSMENTS (Heart & Diabetes Models) */}
+      {/* TRAINED ML PREDICTION ASSESSMENTS (Disease, Heart & Diabetes Models) */}
       {result.mlPredictions &&
-        (result.mlPredictions.heartRisk || result.mlPredictions.diabetesRisk) && (
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-            <div className="flex items-center gap-2.5 text-slate-900 font-extrabold text-lg sm:text-xl border-b border-slate-100 pb-4">
-              <HeartPulse className="w-6 h-6 text-emerald-600" />
+        (result.mlPredictions.diseasePrediction ||
+          result.mlPredictions.heartRisk ||
+          result.mlPredictions.diabetesRisk) && (
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#D9F5EA] shadow-sm space-y-6">
+            <div className="flex items-center gap-2.5 text-[#16352D] font-extrabold text-lg sm:text-xl border-b border-[#D9F5EA] pb-4">
+              <Sparkles className="w-6 h-6 text-[#0D9B75]" />
               <div>
                 <h2>प्रशिक्षित मशीन लर्निंग नैदानिक आकलन (Trained AI Clinical Risk Predictions)</h2>
-                <p className="text-xs font-normal text-slate-500 mt-0.5">
-                  Cleveland Heart Dataset एवं Diabetes Random Forest मॉडल द्वारा सत्यापित
+                <p className="text-xs font-normal text-[#3E6157] mt-0.5">
+                  41 Disease Symptom Prediction मॉडल, Cleveland Heart एवं Diabetes Random Forest द्वारा सत्यापित
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* 1. Trained Disease Symptom Predictor (41 Diseases & 131 Symptoms) */}
+              {result.mlPredictions.diseasePrediction && (
+                <div className="col-span-1 md:col-span-2 p-6 rounded-3xl bg-gradient-to-br from-[#F4FAF7] to-[#D9F5EA]/40 border-2 border-[#0D9B75]/30 space-y-4 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#0D9B75]/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-[#0D9B75] text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Stethoscope className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black tracking-wider uppercase text-[#0D9B75]">
+                            रोग संभावना विश्लेषण (AI Disease Prediction)
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-[#0D9B75]/10 text-[#0D9B75] text-[10px] font-black font-mono">
+                            41 Diseases • 131 Symptoms Dataset
+                          </span>
+                        </div>
+                        <h3 className="text-xl sm:text-2xl font-black text-[#16352D] mt-0.5">
+                          {language === 'bho'
+                            ? result.mlPredictions.diseasePrediction.topDisease.diseaseBho
+                            : language === 'hi'
+                            ? result.mlPredictions.diseasePrediction.topDisease.diseaseHi
+                            : result.mlPredictions.diseasePrediction.topDisease.disease}
+                        </h3>
+                        <p className="text-xs font-semibold text-[#3E6157]">
+                          Clinical Diagnosis: {result.mlPredictions.diseasePrediction.topDisease.disease}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 self-start sm:self-center">
+                      <div className="text-right">
+                        <span className="text-xs text-[#3E6157] font-bold block">संभावना (Probability)</span>
+                        <span className="text-2xl font-black text-[#0D9B75]">
+                          {result.mlPredictions.diseasePrediction.topDisease.percentage}%
+                        </span>
+                      </div>
+                      <span
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase shadow-2xs ${
+                          result.mlPredictions.diseasePrediction.topDisease.urgency === 'RED'
+                            ? 'bg-red-600 text-white'
+                            : result.mlPredictions.diseasePrediction.topDisease.urgency === 'ORANGE'
+                            ? 'bg-orange-500 text-white'
+                            : result.mlPredictions.diseasePrediction.topDisease.urgency === 'YELLOW'
+                            ? 'bg-amber-500 text-slate-950 font-bold'
+                            : 'bg-emerald-600 text-white'
+                        }`}
+                      >
+                        {result.mlPredictions.diseasePrediction.topDisease.urgency}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Confidence Bar */}
+                  <div className="space-y-1">
+                    <div className="w-full bg-[#D9F5EA] h-3 rounded-full overflow-hidden p-0.5">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#0D9B75] to-[#0A8262] rounded-full transition-all duration-700"
+                        style={{
+                          width: `${Math.min(
+                            result.mlPredictions.diseasePrediction.topDisease.percentage,
+                            100
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Disease Clinical Description */}
+                  <div className="p-4 rounded-2xl bg-white/95 border border-[#D9F5EA] text-[#16352D]">
+                    <p className="text-xs font-black uppercase text-[#0D9B75] mb-1 flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5" />
+                      <span>रोग का नैदानिक विवरण (Clinical Medical Overview):</span>
+                    </p>
+                    <p className="text-sm font-medium leading-relaxed">
+                      {result.mlPredictions.diseasePrediction.topDisease.description}
+                    </p>
+                  </div>
+
+                  {/* 4 Doctor Precautions */}
+                  {result.mlPredictions.diseasePrediction.topDisease.precautions.length > 0 && (
+                    <div className="p-4 rounded-2xl bg-white/95 border border-[#D9F5EA] text-[#16352D] space-y-2">
+                      <p className="text-xs font-black uppercase text-[#0D9B75] flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>सुझाए गए डॉक्टरी परहेज एवं सावधानियां (Doctor Precautions):</span>
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {result.mlPredictions.diseasePrediction.topDisease.precautions.map(
+                          (prec, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center gap-2 p-2.5 rounded-xl bg-[#F4FAF7] border border-[#D9F5EA] text-xs font-bold text-[#16352D]"
+                            >
+                              <span className="w-5 h-5 rounded-full bg-[#0D9B75] text-white flex items-center justify-center text-[11px] shrink-0 font-black">
+                                {i + 1}
+                              </span>
+                              <span className="capitalize">{prec}</span>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Differential Diagnoses & Contributing Symptoms */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {/* Alternatives */}
+                    <div className="p-3.5 rounded-2xl bg-white/95 border border-[#D9F5EA]">
+                      <p className="text-[11px] font-black uppercase text-[#3E6157] mb-2">
+                        अन्य संभावित विकल्प (Differential Diagnoses):
+                      </p>
+                      <div className="space-y-1.5">
+                        {result.mlPredictions.diseasePrediction.differentialDiagnoses.map((alt, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-[#F4FAF7]"
+                          >
+                            <span className="font-semibold text-[#16352D]">
+                              {language === 'bho'
+                                ? alt.diseaseBho
+                                : language === 'hi'
+                                ? alt.diseaseHi
+                                : alt.disease}
+                            </span>
+                            <span className="font-black text-[#0D9B75]">{alt.percentage}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Contributing Symptoms & Cumulative Severity */}
+                    <div className="p-3.5 rounded-2xl bg-white/95 border border-[#D9F5EA]">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-black uppercase text-[#3E6157]">
+                          सत्यापित लक्षण (Verified Symptoms):
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D9F5EA] text-[#0D9B75]">
+                          Severity Score: {result.mlPredictions.diseasePrediction.cumulativeSeverityScore}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {result.mlPredictions.diseasePrediction.allContributingSymptoms.map((sym, i) => (
+                          <span
+                            key={i}
+                            className="px-2 py-1 rounded-lg bg-[#F4FAF7] border border-[#D9F5EA] text-[11px] font-bold text-[#16352D]"
+                          >
+                            ✓ {sym.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* Heart Model Prediction */}
               {result.mlPredictions.heartRisk && (
                 <div className="p-5 rounded-2xl bg-gradient-to-br from-rose-50/70 to-red-50/40 border border-red-200 space-y-3">

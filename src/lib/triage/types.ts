@@ -1,3 +1,5 @@
+import type { DiseasePredictionResult } from '../ml/diseasePredictor';
+
 export type SeverityLevel = 'GREEN' | 'YELLOW' | 'ORANGE' | 'RED';
 
 export type FacilityType =
@@ -29,6 +31,7 @@ export interface TriageInput {
 }
 
 export interface MLRiskAssessments {
+  diseasePrediction?: DiseasePredictionResult;
   heartRisk?: {
     probability: number;
     riskLevel: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';

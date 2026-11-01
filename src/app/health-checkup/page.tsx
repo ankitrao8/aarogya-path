@@ -2,6 +2,10 @@
 
 import { useTranslation } from '@/lib/i18n';
 import {
+  predictDiseaseFromSymptoms,
+  DiseasePredictionResult,
+} from '@/lib/ml/diseasePredictor';
+import {
   HeartRiskInput,
   HeartRiskOutput,
   predictHeartDiseaseRisk,
@@ -43,7 +47,34 @@ import React, { useState } from 'react';
 export default function HealthCheckupPage() {
   const router = useRouter();
   const { language, t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'heart' | 'diabetes'>('heart');
+  const [activeTab, setActiveTab] = useState<'heart' | 'diabetes' | 'disease'>('heart');
+
+  // --- DISEASE PREDICTION MODEL STATE (41 Diseases • 131 Symptoms) ---
+  const [selectedDiseaseSymptoms, setSelectedDiseaseSymptoms] = useState<string[]>([
+    'chills',
+    'high_fever',
+    'sweating',
+    'headache',
+  ]);
+  const [diseaseSearch, setDiseaseSearch] = useState('');
+  const [diseaseResult, setDiseaseResult] = useState<DiseasePredictionResult | null>(() =>
+    predictDiseaseFromSymptoms(['chills', 'high_fever', 'sweating', 'headache'])
+  );
+
+  const toggleDiseaseSymptom = (symptom: string) => {
+    setSelectedDiseaseSymptoms((prev) => {
+      const next = prev.includes(symptom)
+        ? prev.filter((s) => s !== symptom)
+        : [...prev, symptom];
+      setDiseaseResult(predictDiseaseFromSymptoms(next));
+      return next;
+    });
+  };
+
+  const applyDiseasePreset = (symptoms: string[]) => {
+    setSelectedDiseaseSymptoms(symptoms);
+    setDiseaseResult(predictDiseaseFromSymptoms(symptoms));
+  };
 
   // --- HEART MODEL STATE ---
   const [heartInput, setHeartInput] = useState<HeartRiskInput>({
@@ -296,6 +327,18 @@ export default function HealthCheckupPage() {
           >
             <Activity className="w-5 h-5" />
             <span>मधुमेह जोखिम मॉडल (Diabetes Random Forest)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('disease')}
+            className={`flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-bold text-sm sm:text-base transition-all ${
+              activeTab === 'disease'
+                ? 'bg-[#0D9B75] text-white shadow-md shadow-[#0D9B75]/25'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+            }`}
+          >
+            <Sparkles className="w-5 h-5" />
+            <span>रोग लक्षण मॉडल (Disease Symptom ML - 41 Diseases)</span>
           </button>
         </div>
 
@@ -843,6 +886,234 @@ export default function HealthCheckupPage() {
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-500">
                     <span className="font-bold">सत्यापित मॉडल: </span> {diabetesResult.modelUsed}
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: DISEASE SYMPTOM PREDICTOR (41 DISEASES • 131 SYMPTOMS) */}
+        {activeTab === 'disease' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Input Selection (7 Cols) */}
+            <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 border border-[#D9F5EA] shadow-xs space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D9F5EA]">
+                <div className="flex items-center gap-2">
+                  <Stethoscope className="w-5 h-5 text-[#0D9B75]" />
+                  <h2 className="font-extrabold text-lg text-[#16352D]">
+                    रोग लक्षण चयन (Select Patient Symptoms)
+                  </h2>
+                </div>
+                <div className="text-xs font-bold text-[#0D9B75] bg-[#D9F5EA] px-3 py-1 rounded-full">
+                  {selectedDiseaseSymptoms.length} लक्षण चयनित (Selected)
+                </div>
+              </div>
+
+              {/* Clinical Presets */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-[#3E6157] uppercase tracking-wider block">
+                  त्वरित नैदानिक नमूने (Clinical Presets):
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: 'मलेरिया (Malaria)', syms: ['chills', 'high_fever', 'sweating', 'headache', 'nausea'] },
+                    { label: 'डेंगू (Dengue)', syms: ['high_fever', 'joint_pain', 'loss_of_appetite', 'red_spots_over_body', 'muscle_pain'] },
+                    { label: 'निमोनिया (Pneumonia)', syms: ['cough', 'high_fever', 'breathlessness', 'chest_pain', 'phlegm'] },
+                    { label: 'पीलिया (Jaundice)', syms: ['yellowish_skin', 'dark_urine', 'vomiting', 'fatigue', 'itching'] },
+                    { label: 'टाइफाइड (Typhoid)', syms: ['high_fever', 'chills', 'fatigue', 'headache', 'abdominal_pain', 'diarrhoea'] },
+                    { label: 'डायबिटीज (Diabetes)', syms: ['polyuria', 'fatigue', 'increased_appetite', 'weight_loss'] },
+                    { label: 'फंगल (Fungal)', syms: ['itching', 'skin_rash', 'nodal_skin_eruptions'] },
+                  ].map((p, i) => (
+                    <button
+                      key={i}
+                      onClick={() => applyDiseasePreset(p.syms)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#F4FAF7] text-[#16352D] hover:bg-[#D9F5EA] border border-[#D9F5EA] transition-all"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Symptom Filter/Search */}
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="लक्षण खोजें / Search symptom (e.g. fever, cough, pain, vomiting, rash)..."
+                  value={diseaseSearch}
+                  onChange={(e) => setDiseaseSearch(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#D9F5EA] text-sm focus:outline-hidden focus:ring-2 focus:ring-[#0D9B75] bg-[#F4FAF7]"
+                />
+              </div>
+
+              {/* Interactive Symptom Chips Grid */}
+              <div className="space-y-3">
+                <span className="text-[11px] font-bold text-[#3E6157] uppercase tracking-wider block">
+                  मुख्य लक्षण सूची (131 Clinical Symptoms):
+                </span>
+                <div className="flex flex-wrap gap-2 max-h-96 overflow-y-auto p-1 border border-[#D9F5EA]/60 rounded-2xl">
+                  {[
+                    'high_fever', 'chills', 'sweating', 'shivering', 'mild_fever', 'fatigue', 'weight_loss', 'malaise',
+                    'headache', 'dizziness', 'altered_sensorium', 'loss_of_balance', 'unsteadiness', 'slurred_speech',
+                    'cough', 'breathlessness', 'chest_pain', 'phlegm', 'sinus_pressure', 'runny_nose', 'congestion', 'throat_irritation',
+                    'stomach_pain', 'acidity', 'vomiting', 'nausea', 'indigestion', 'abdominal_pain', 'diarrhoea', 'constipation',
+                    'itching', 'skin_rash', 'nodal_skin_eruptions', 'red_spots_over_body', 'yellowish_skin', 'yellowing_of_eyes', 'blister',
+                    'joint_pain', 'knee_pain', 'back_pain', 'neck_pain', 'muscle_pain', 'muscle_weakness', 'swelling_joints',
+                    'polyuria', 'increased_appetite', 'excessive_hunger', 'burning_micturition', 'dark_urine', 'yellow_urine',
+                    'palpitations', 'fast_heart_rate', 'loss_of_appetite', 'pain_behind_the_eyes', 'blurred_and_distorted_vision',
+                    'dehydration', 'sunken_eyes', 'patches_in_throat', 'cold_hands_and_feets', 'lethargy', 'anxiety'
+                  ]
+                    .filter((sym) =>
+                      diseaseSearch
+                        ? sym.toLowerCase().includes(diseaseSearch.toLowerCase().replace(/\s+/g, '_'))
+                        : true
+                    )
+                    .map((sym) => {
+                      const isSelected = selectedDiseaseSymptoms.includes(sym);
+                      return (
+                        <button
+                          key={sym}
+                          onClick={() => toggleDiseaseSymptom(sym)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                            isSelected
+                              ? 'bg-[#0D9B75] text-white shadow-xs'
+                              : 'bg-[#F4FAF7] text-[#16352D] hover:bg-[#D9F5EA] border border-[#D9F5EA]'
+                          }`}
+                        >
+                          <span>{isSelected ? '✓' : '+'}</span>
+                          <span className="capitalize">{sym.replace(/_/g, ' ')}</span>
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            </div>
+
+            {/* Results Sidebar (5 Cols) */}
+            <div className="lg:col-span-5 space-y-6">
+              {diseaseResult ? (
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#D9F5EA] shadow-xs space-y-6">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#D9F5EA]">
+                    <span className="text-xs font-bold text-[#3E6157] uppercase tracking-wider">
+                      मशीन लर्निंग विश्लेषण परिणाम
+                    </span>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                        diseaseResult.topDisease.urgency === 'RED'
+                          ? 'bg-red-600 text-white'
+                          : diseaseResult.topDisease.urgency === 'ORANGE'
+                          ? 'bg-orange-500 text-white'
+                          : diseaseResult.topDisease.urgency === 'YELLOW'
+                          ? 'bg-amber-500 text-slate-950 font-bold'
+                          : 'bg-emerald-600 text-white'
+                      }`}
+                    >
+                      {diseaseResult.topDisease.urgency} URGENCY
+                    </span>
+                  </div>
+
+                  {/* Top Predicted Disease */}
+                  <div className="space-y-2">
+                    <span className="text-xs font-bold text-[#0D9B75] uppercase">
+                      सर्वाधिक संभावित रोग (Top Diagnosis):
+                    </span>
+                    <h3 className="text-2xl font-black text-[#16352D]">
+                      {language === 'bho'
+                        ? diseaseResult.topDisease.diseaseBho
+                        : language === 'hi'
+                        ? diseaseResult.topDisease.diseaseHi
+                        : diseaseResult.topDisease.disease}
+                    </h3>
+                    <p className="text-xs font-semibold text-[#3E6157]">
+                      {diseaseResult.topDisease.disease}
+                    </p>
+                  </div>
+
+                  {/* Confidence Gauge */}
+                  <div className="p-4 rounded-2xl bg-[#F4FAF7] border border-[#D9F5EA] space-y-2">
+                    <div className="flex justify-between items-center text-xs font-bold">
+                      <span className="text-[#3E6157]">मॉडल विश्वसनीयता (Confidence):</span>
+                      <span className="text-lg font-black text-[#0D9B75]">{diseaseResult.topDisease.percentage}%</span>
+                    </div>
+                    <div className="w-full bg-[#D9F5EA] h-3 rounded-full overflow-hidden p-0.5">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#0D9B75] to-[#0A8262] rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(diseaseResult.topDisease.percentage, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[11px] text-[#3E6157] font-semibold pt-1">
+                      <span>Severity Score: {diseaseResult.cumulativeSeverityScore}</span>
+                      <span>Symptoms Matched: {diseaseResult.totalSymptomsReported}</span>
+                    </div>
+                  </div>
+
+                  {/* Clinical Description */}
+                  <div className="space-y-1.5">
+                    <h4 className="text-xs font-bold text-[#16352D] uppercase tracking-wider">
+                      रोग का नैदानिक विवरण (Medical Overview):
+                    </h4>
+                    <p className="text-xs text-[#3E6157] leading-relaxed p-3 rounded-xl bg-[#F4FAF7] border border-[#D9F5EA]">
+                      {diseaseResult.topDisease.description}
+                    </p>
+                  </div>
+
+                  {/* Precautions */}
+                  {diseaseResult.topDisease.precautions.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-bold text-[#16352D] uppercase tracking-wider">
+                        डॉक्टरी सावधानियां व परहेज (Clinical Precautions):
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {diseaseResult.topDisease.precautions.map((prec, i) => (
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-xs font-bold text-[#16352D] p-2 rounded-xl bg-[#F4FAF7] border border-[#D9F5EA]"
+                          >
+                            <span className="w-4 h-4 rounded-full bg-[#0D9B75] text-white flex items-center justify-center text-[10px] shrink-0 font-black">
+                              {i + 1}
+                            </span>
+                            <span className="capitalize">{prec}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Differential Diagnoses */}
+                  <div className="space-y-2 pt-2 border-t border-[#D9F5EA]">
+                    <h4 className="text-xs font-bold text-[#3E6157] uppercase tracking-wider">
+                      अन्य संभावित विकल्प (Differential Diagnoses):
+                    </h4>
+                    <div className="space-y-1.5">
+                      {diseaseResult.differentialDiagnoses.map((alt, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-[#F4FAF7]"
+                        >
+                          <span className="font-semibold text-[#16352D]">
+                            {language === 'bho'
+                              ? alt.diseaseBho
+                              : language === 'hi'
+                              ? alt.diseaseHi
+                              : alt.disease}
+                          </span>
+                          <span className="font-black text-[#0D9B75]">{alt.percentage}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-[#F4FAF7] border border-[#D9F5EA] text-[11px] text-[#3E6157]">
+                    <span className="font-bold">प्रशिक्षित मॉडल: </span> {diseaseResult.modelUsed}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-3xl p-8 border border-[#D9F5EA] text-center space-y-3">
+                  <Stethoscope className="w-8 h-8 text-[#0D9B75] mx-auto" />
+                  <h3 className="font-bold text-base text-[#16352D]">कोई लक्षण चयनित नहीं</h3>
+                  <p className="text-xs text-[#3E6157]">
+                    कृपया बाईं ओर दी गई सूची से रोगी के लक्षण चुनें या किसी त्वरित नमूने पर क्लिक करें।
+                  </p>
                 </div>
               )}
             </div>
